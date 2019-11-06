@@ -21,7 +21,7 @@ type kubeletClient struct {
 func newKubeletClient(config *rest.Config) (*kubeletClient, error) {
 	// Use the core API group serializer. Same logic as client-go.
 	// https://github.com/kubernetes/client-go/blob/v3.0.0/kubernetes/typed/core/v1/core_client.go#L147
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 
 	// Kubelet is using a self-signed cert.
 	config.TLSClientConfig.Insecure = true

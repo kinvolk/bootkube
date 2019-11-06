@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kubernetes-incubator/bootkube/pkg/asset"
+	"github.com/kubernetes-incubator/bootkube/pkg/helm"
 
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -63,7 +64,11 @@ func (b *bootkube) Run() error {
 		return err
 	}
 
-	if err = CreateAssets(kubeConfig, filepath.Join(b.assetDir, asset.AssetPathManifests), assetTimeout, b.strict); err != nil {
+	// if err = CreateAssets(kubeConfig, filepath.Join(b.assetDir, asset.AssetPathManifests), assetTimeout, b.strict); err != nil {
+	// 	return err
+	// }
+
+	if err = helm.InstallHelmChart(kubeConfig, filepath.Join(b.assetDir, asset.AssetHelmCharts), assetTimeout, b.strict); err != nil {
 		return err
 	}
 

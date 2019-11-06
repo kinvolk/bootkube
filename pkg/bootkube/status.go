@@ -64,10 +64,10 @@ func (s *statusController) Run() {
 	podStore, podController := cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(lo metav1.ListOptions) (runtime.Object, error) {
-				return s.client.Core().Pods("").List(options)
+				return s.client.CoreV1().Pods("").List(options)
 			},
 			WatchFunc: func(lo metav1.ListOptions) (watch.Interface, error) {
-				return s.client.Core().Pods("").Watch(options)
+				return s.client.CoreV1().Pods("").Watch(options)
 			},
 		},
 		&v1.Pod{},

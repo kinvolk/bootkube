@@ -35,7 +35,7 @@ func (c *checkpointer) checkpointConfigMapVolumes(pod *v1.Pod) (*v1.Pod, error) 
 // The path to the configMap data becomes: checkpointConfigMapPath/namespace/podname/configMapName/configMap.file
 // Where each "configMap.file" is a key from the configMap.Data field.
 func (c *checkpointer) checkpointConfigMap(namespace, podName, configMapName string, uid, gid int) (string, error) {
-	configMap, err := c.apiserver.Core().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+	configMap, err := c.apiserver.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve configMap %s/%s: %v", namespace, configMapName, err)
 	}
