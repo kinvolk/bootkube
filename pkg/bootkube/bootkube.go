@@ -60,8 +60,12 @@ func (b *bootkube) Run() error {
 	if err = bcp.Start(); err != nil {
 		return err
 	}
+	// wait for the api server to be up
+	if err := util.PollApiServerUntilTimeout(kubeConfig, assetTimeout); err != nil {
+		return err
+	}
 
-	if err = CreateAssets(kubeConfig, filepath.Join(b.assetDir, asset.AssetPathManifests), assetTimeout, b.strict); err != nil {
+	if err = CreateAssets(kubeConfig, filepath.Join(b.assetDir, asset.AssetPathManifests), b.strict); err != nil {
 		return err
 	}
 
