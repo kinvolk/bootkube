@@ -1,11 +1,12 @@
 package bootkube
 
 import (
-	"fmt"
 	"path/filepath"
 	"time"
 
 	"github.com/kubernetes-sigs/bootkube/cmd/render/plugin/default/asset"
+	"github.com/kubernetes-sigs/bootkube/pkg/util"
+
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -46,7 +47,7 @@ func (b *bootkube) Run() error {
 	defer func() {
 		// Always tear down the bootstrap control plane and clean up manifests and secrets.
 		if err := bcp.Teardown(); err != nil {
-			UserOutput("Error tearing down temporary bootstrap control plane: %v\n", err)
+			util.UserOutput("Error tearing down temporary bootstrap control plane: %v\n", err)
 		}
 	}()
 
@@ -54,7 +55,7 @@ func (b *bootkube) Run() error {
 	defer func() {
 		// Always report errors.
 		if err != nil {
-			UserOutput("Error: %v\n", err)
+			util.UserOutput("Error: %v\n", err)
 		}
 	}()
 
@@ -71,12 +72,4 @@ func (b *bootkube) Run() error {
 	}
 
 	return nil
-}
-
-// All bootkube printing to stdout should go through this fmt.Printf wrapper.
-// The stdout of bootkube should convey information useful to a human sitting
-// at a terminal watching their cluster bootstrap itself. Otherwise the message
-// should go to stderr.
-func UserOutput(format string, a ...interface{}) {
-	fmt.Printf(format, a...)
 }
