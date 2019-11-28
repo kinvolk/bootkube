@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kubernetes-sigs/bootkube/pkg/asset"
+	"github.com/kubernetes-sigs/bootkube/pkg/helm"
 	"github.com/kubernetes-sigs/bootkube/pkg/util"
 
 	"k8s.io/client-go/tools/clientcmd"
@@ -68,6 +69,11 @@ func (b *bootkube) Run() error {
 	}
 
 	if err = CreateAssets(kubeConfig, filepath.Join(b.assetDir, asset.AssetPathManifests), b.strict); err != nil {
+		return err
+	}
+
+	kubeconfigPath := filepath.Join(b.assetDir, asset.AssetPathAdminKubeConfig)
+	if err = helm.InstallCharts(kubeconfigPath, kubeConfig, filepath.Join(b.assetDir, asset.AssetPathCharts)); err != nil {
 		return err
 	}
 

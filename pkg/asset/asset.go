@@ -99,6 +99,7 @@ const (
 	AssetPathBootstrapAPIServer             = "bootstrap-manifests/bootstrap-apiserver.yaml"
 	AssetPathBootstrapControllerManager     = "bootstrap-manifests/bootstrap-controller-manager.yaml"
 	AssetPathBootstrapScheduler             = "bootstrap-manifests/bootstrap-scheduler.yaml"
+	AssetPathCharts                         = "charts"
 )
 
 var (
