@@ -1226,87 +1226,40 @@ spec:
   selector:
     matchLabels:
       k8s-app: calico-node
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   template:
     metadata:
       labels:
         k8s-app: calico-node
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: 'docker/default'
     spec:
       hostNetwork: true
+      priorityClassName: system-node-critical
       serviceAccountName: calico-node
       tolerations:
         - effect: NoSchedule
           operator: Exists
         - effect: NoExecute
           operator: Exists
-      containers:
-        - name: calico-node
+      initContainers:
+        # Install Calico CNI binaries and CNI network config file on nodes
+        - name: install-cni
           image: {{ .Images.Calico }}
+          command: ["/install-cni.sh"]
           env:
-            - name: DATASTORE_TYPE
-              value: "kubernetes"
-            - name: FELIX_LOGSEVERITYSCREEN
-              value: "info"
-            - name: CLUSTER_TYPE
-              value: "k8s,bgp"
-            - name: CALICO_DISABLE_FILE_LOGGING
-              value: "true"
-            - name: FELIX_DEFAULTENDPOINTTOHOSTACTION
-              value: "ACCEPT"
-            - name: FELIX_IPV6SUPPORT
-              value: "false"
-            - name: FELIX_IPINIPMTU
-              value: "1440"
-            - name: WAIT_FOR_DATASTORE
-              value: "true"
-            - name: CALICO_IPV4POOL_CIDR
-              value: "{{ .PodCIDR }}"
-            - name: CALICO_IPV4POOL_IPIP
-              value: "Always"
-            - name: FELIX_IPINIPENABLED
-              value: "true"
-            - name: FELIX_TYPHAK8SSERVICENAME
-              valueFrom:
-                configMapKeyRef:
-                  name: calico-config
-                  key: typha_service_name
-            - name: NODENAME
+            # Name of the CNI config file to create on each node.
+            - name: CNI_CONF_NAME
+              value: "10-calico.conflist"
+            # Set node name based on k8s nodeName
+            - name: KUBERNETES_NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            - name: IP
-              value: "autodetect"
-            - name: FELIX_HEALTHENABLED
-              value: "true"
-          securityContext:
-            privileged: true
-          resources:
-            requests:
-              cpu: 250m
-          livenessProbe:
-            httpGet:
-              path: /liveness
-              port: 9099
-            periodSeconds: 10
-            initialDelaySeconds: 10
-            failureThreshold: 6
-          readinessProbe:
-            httpGet:
-              path: /readiness
-              port: 9099
-            periodSeconds: 10
-          volumeMounts:
-            - mountPath: /lib/modules
-              name: lib-modules
-              readOnly: true
-            - mountPath: /var/run/calico
-              name: var-run-calico
-              readOnly: false
-        - name: install-cni
-          image: {{ .Images.CalicoCNI }}
-          command: ["/install-cni.sh"]
-          env:
-            - name: CNI_CONF_NAME
-              value: "10-calico.conflist"
+            # Contents of the CNI config to create on each node.
             - name: CNI_NETWORK_CONFIG
               valueFrom:
                 configMapKeyRef:
@@ -1314,33 +1267,136 @@ spec:
                   key: cni_network_config
             - name: CNI_NET_DIR
               value: "/etc/kubernetes/cni/net.d"
-            - name: KUBERNETES_NODE_NAME
+            - name: CNI_MTU
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: veth_mtu
+            - name: SLEEP
+              value: "false"
+          volumeMounts:
+            - name: cni-bin-dir
+              mountPath: /host/opt/cni/bin
+            - name: cni-conf-dir
+              mountPath: /host/etc/cni/net.d
+      containers:
+        - name: calico-node
+          image: {{ .Images.Calico }}
+          env:
+            # Use Kubernetes API as the backing datastore.
+            - name: DATASTORE_TYPE
+              value: "kubernetes"
+            # Wait for datastore
+            - name: WAIT_FOR_DATASTORE
+              value: "true"
+            # Typha support: controlled by the ConfigMap.
+            - name: FELIX_TYPHAK8SSERVICENAME
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: typha_service_name
+            - name: FELIX_USAGEREPORTINGENABLED
+              value: "false"
+            # Set node name based on k8s nodeName.
+            - name: NODENAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            # Calico network backend
+            - name: CALICO_NETWORKING_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: calico_backend
+            # Cluster type to identify the deployment type
+            - name: CLUSTER_TYPE
+              value: "k8s,bgp"
+            # Auto-detect the BGP IP address.
+            - name: IP
+              value: "autodetect"
+            - name: IP_AUTODETECTION_METHOD
+              value: "first-found"
+            # Enable IP-in-IP within Felix.
+            - name: FELIX_IPINIPENABLED
+              value: "true"
+            # Set MTU for tunnel device used if ipip is enabled
+            - name: FELIX_IPINIPMTU
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: veth_mtu
+            - name: NO_DEFAULT_POOLS
+              value: "true"
+            # Disable file logging so "kubectl logs" works.
+            - name: CALICO_DISABLE_FILE_LOGGING
+              value: "true"
+            # Set Felix endpoint to host default action to ACCEPT.
+            - name: FELIX_DEFAULTENDPOINTTOHOSTACTION
+              value: "ACCEPT"
+            # Disable IPV6 on Kubernetes.
+            - name: FELIX_IPV6SUPPORT
+              value: "false"
+            # Enable felix info logging.
+            - name: FELIX_LOGSEVERITYSCREEN
+              value: "info"
+            - name: FELIX_HEALTHENABLED
+              value: "true"
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              cpu: 150m
+          livenessProbe:
+            exec:
+              command:
+                - /bin/calico-node
+                - -felix-ready
+            periodSeconds: 10
+            initialDelaySeconds: 10
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - /bin/calico-node
+                - -felix-ready
+                - -bird-ready
+            periodSeconds: 10
           volumeMounts:
-            - mountPath: /host/opt/cni/bin
-              name: cni-bin-dir
-            - mountPath: /host/etc/cni/net.d
-              name: cni-net-dir
+            - name: lib-modules
+              mountPath: /lib/modules
+              readOnly: true
+            - name: var-lib-calico
+              mountPath: /var/lib/calico
+              readOnly: false
+            - name: var-run-calico
+              mountPath: /var/run/calico
+              readOnly: false
+            - name: xtables-lock
+              mountPath: /run/xtables.lock
+              readOnly: false
       terminationGracePeriodSeconds: 0
       volumes:
+        # Used by calico/node
         - name: lib-modules
           hostPath:
             path: /lib/modules
+        - name: var-lib-calico
+          hostPath:
+            path: /var/lib/calico
         - name: var-run-calico
           hostPath:
             path: /var/run/calico
+        - name: xtables-lock
+          hostPath:
+            type: FileOrCreate
+            path: /run/xtables.lock
+        # Used by install-cni
         - name: cni-bin-dir
           hostPath:
             path: /opt/cni/bin
-        - name: cni-net-dir
+        - name: cni-conf-dir
           hostPath:
             path: /etc/kubernetes/cni/net.d
-  updateStrategy:
-    rollingUpdate:
-      maxUnavailable: 1
-    type: RollingUpdate
 `)
 
 // Canal template
