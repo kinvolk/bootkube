@@ -1172,8 +1172,12 @@ metadata:
   name: calico-config
   namespace: kube-system
 data:
-  # Typha is still listed as a beta feature. Hence disabling it.
+  # Disable Typha for now.
   typha_service_name: "none"
+  # Calico backend to use
+  calico_backend: "bird"
+  # Calico MTU
+  veth_mtu: "1500"
   # The CNI network configuration to install on each node.
   cni_network_config: |-
     {
@@ -1185,16 +1189,14 @@ data:
           "log_level": "info",
           "datastore_type": "kubernetes",
           "nodename": "__KUBERNETES_NODE_NAME__",
+          "mtu": __CNI_MTU__,
           "ipam": {
-            "type": "host-local",
-            "subnet": "usePodCidr"
+            "type": "calico-ipam"
           },
           "policy": {
-            "type": "k8s",
-            "k8s_auth_token": "__SERVICEACCOUNT_TOKEN__"
+            "type": "k8s"
           },
           "kubernetes": {
-            "k8s_api_root": "https://__KUBERNETES_SERVICE_HOST__:__KUBERNETES_SERVICE_PORT__",
             "kubeconfig": "__KUBECONFIG_FILEPATH__"
           }
         },
@@ -1202,7 +1204,12 @@ data:
           "type": "portmap",
           "snat": true,
           "capabilities": {"portMappings": true}
+        },
+        {
+          "type": "bandwidth",
+          "capabilities": {"bandwidth": true}
         }
+
       ]
     }
 `)
@@ -1524,7 +1531,7 @@ var CalicoFelixConfigurationsCRD = []byte(`apiVersion: apiextensions.k8s.io/v1be
 description: Calico Felix Configuration
 kind: CustomResourceDefinition
 metadata:
-   name: felixconfigurations.crd.projectcalico.org
+  name: felixconfigurations.crd.projectcalico.org
 spec:
   scope: Cluster
   group: crd.projectcalico.org
@@ -1593,29 +1600,108 @@ metadata:
   name: calico-node
 rules:
   - apiGroups: [""]
-    resources: ["namespaces"]
-    verbs: ["get", "list", "watch"]
+    resources:
+      - pods
+      - nodes
+      - namespaces
+    verbs:
+      - get
   - apiGroups: [""]
-    resources: ["pods/status"]
-    verbs: ["update"]
+    resources:
+      - endpoints
+      - services
+    verbs:
+      - watch
+      - list
+  # Used by Calico for policy information
   - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list", "watch", "patch"]
+    resources:
+      - pods
+      - namespaces
+      - serviceaccounts
+    verbs:
+      - list
+      - watch
   - apiGroups: [""]
-    resources: ["services"]
-    verbs: ["get"]
+    resources:
+      - nodes/status
+    verbs:
+      # Calico patches the node NetworkUnavilable status
+      - patch
+      # Calico updates some info in node annotations
+      - update
+  # CNI plugin patches pods/status
   - apiGroups: [""]
-    resources: ["endpoints"]
-    verbs: ["get"]
+    resources:
+      - pods/status
+    verbs:
+      - patch
+  # Calico reads some info on nodes
   - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "update", "watch"]
-  - apiGroups: ["extensions"]
-    resources: ["networkpolicies"]
-    verbs: ["get", "list", "watch"]
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+  # Calico monitors Kubernetes NetworkPolicies
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - networkpolicies
+    verbs:
+      - watch
+      - list
+  # Calico monitors its CRDs
   - apiGroups: ["crd.projectcalico.org"]
-    resources: ["globalfelixconfigs", "felixconfigurations", "bgppeers", "globalbgpconfigs", "bgpconfigurations", "ippools", "globalnetworkpolicies", "globalnetworksets", "networkpolicies", "clusterinformations"]
-    verbs: ["create", "get", "list", "update", "watch"]
+    resources:
+      - globalfelixconfigs
+      - felixconfigurations
+      - bgppeers
+      - globalbgpconfigs
+      - bgpconfigurations
+      - ippools
+      - ipamblocks
+      - globalnetworkpolicies
+      - globalnetworksets
+      - networkpolicies
+      - networksets
+      - clusterinformations
+      - hostendpoints
+      - blockaffinities
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups: ["crd.projectcalico.org"]
+    resources:
+      - felixconfigurations
+      - ippools
+      - clusterinformations
+    verbs:
+      - create
+      - update
+  # Calico may perform IPAM allocations (not yet used)
+  - apiGroups: ["crd.projectcalico.org"]
+    resources:
+      - blockaffinities
+      - ipamblocks
+      - ipamhandles
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
+  - apiGroups: ["crd.projectcalico.org"]
+    resources:
+      - ipamconfigs
+    verbs:
+      - get
+  - apiGroups: ["crd.projectcalico.org"]
+    resources:
+      - blockaffinities
+    verbs:
+      - watch
 `)
 
 var CalicoRoleBindingTemplate = []byte(`apiVersion: rbac.authorization.k8s.io/v1
