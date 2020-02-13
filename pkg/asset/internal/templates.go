@@ -1207,6 +1207,7 @@ data:
     }
 `)
 
+// calico template
 var CalicoNodeTemplate = []byte(`apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -1335,6 +1336,7 @@ spec:
     type: RollingUpdate
 `)
 
+// Canal template
 var CalicoPolicyOnlyTemplate = []byte(`apiVersion: apps/v1
 kind: DaemonSet
 metadata:
