@@ -65,6 +65,7 @@ const (
 	AssetPathCalicoNetworkPoliciesCRD       = "manifests/calico-network-policies-crd.yaml"
 	AssetPathCalicoGlobalNetworkSetsCRD     = "manifests/calico-global-network-sets-crd.yaml"
 	AssetPathCalicoIPPoolsCRD               = "manifests/calico-ip-pools-crd.yaml"
+	AssetPathCalicoOtherCRD                 = "manifests/calico-other-crd.yaml"
 	AssetPathCalicoClusterInformationsCRD   = "manifests/calico-cluster-informations-crd.yaml"
 	AssetPathAPIServerSecret                = "manifests/kube-apiserver-secret.yaml"
 	AssetPathAPIServer                      = "manifests/kube-apiserver.yaml"

@@ -96,7 +96,8 @@ func newDynamicAssets(conf Config) Assets {
 			MustCreateAssetFromTemplate(AssetPathCalicoGlobalNetworkSetsCRD, internal.CalicoGlobalNetworkSetsCRD, conf),
 			MustCreateAssetFromTemplate(AssetPathCalicoNetworkPoliciesCRD, internal.CalicoNetworkPoliciesCRD, conf),
 			MustCreateAssetFromTemplate(AssetPathCalicoClusterInformationsCRD, internal.CalicoClusterInformationsCRD, conf),
-			MustCreateAssetFromTemplate(AssetPathCalicoIPPoolsCRD, internal.CalicoIPPoolsCRD, conf))
+			MustCreateAssetFromTemplate(AssetPathCalicoIPPoolsCRD, internal.CalicoIPPoolsCRD, conf),
+			MustCreateAssetFromTemplate(AssetPathCalicoOtherCRD, internal.CalicoOtherCRD, conf))
 	case NetworkCanal:
 		assets = append(assets,
 			MustCreateAssetFromTemplate(AssetPathCalicoCfg, internal.CalicoCfgTemplate, conf),
