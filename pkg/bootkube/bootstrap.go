@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kubernetes-sigs/bootkube/pkg/asset"
+	"github.com/kubernetes-sigs/bootkube/cmd/render/plugin/default/asset"
 	"github.com/kubernetes-sigs/bootkube/pkg/util"
 )
 

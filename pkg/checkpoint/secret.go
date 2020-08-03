@@ -1,6 +1,7 @@
 package checkpoint
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -35,7 +36,7 @@ func (c *checkpointer) checkpointSecretVolumes(pod *corev1.Pod) (*corev1.Pod, er
 // The path to the secret data becomes: checkpointSecretPath/namespace/podname/secretName/secret.file
 // Where each "secret.file" is a key from the secret.Data field.
 func (c *checkpointer) checkpointSecret(namespace, podName, secretName string, uid, gid int) (string, error) {
-	secret, err := c.apiserver.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
+	secret, err := c.apiserver.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve secret %s/%s: %v", namespace, secretName, err)
 	}

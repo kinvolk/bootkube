@@ -3,6 +3,7 @@ package bootkube
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -169,6 +170,15 @@ func (c *creater) createManifests(manifests []manifest) (ok bool) {
 	}
 
 	for _, m := range other {
+		// There are cases when a multi-doc YAML contains empty manifests. This
+		// is most often the case when using a templating enging that skips
+		// over a certain manifest in the case that a feature is diabled. This
+		// check is to allow for this. When decoded, the raw string becomes
+		// "null", so we check for that and skip the manifest if it is "null".
+		if string(m.raw) == "null" {
+			continue
+		}
+
 		if err := create(m); err != nil && c.strict {
 			return false
 		}
@@ -203,7 +213,7 @@ func (c *creater) waitForCRD(m manifest) error {
 	return wait.PollImmediate(crdRolloutDuration, crdRolloutTimeout, func() (bool, error) {
 		// get all resources, giving a 200 result with empty list on success, 404 before the CRD is active.
 		namespaceLessURI := allCustomResourcesURI(schema.GroupVersionResource{Group: crd.Spec.Group, Version: firstVer, Resource: crd.Spec.Names.Plural})
-		res := c.client.Get().RequestURI(namespaceLessURI).Do()
+		res := c.client.Get().RequestURI(namespaceLessURI).Do(context.TODO())
 		if res.Error() != nil {
 			if errors.IsNotFound(res.Error()) {
 				return false, nil
@@ -234,7 +244,7 @@ func (c *creater) create(m manifest) error {
 		AbsPath(m.urlPath(info.Name, info.Namespaced)).
 		Body(m.raw).
 		SetHeader("Content-Type", "application/json").
-		Do().Error()
+		Do(context.TODO()).Error()
 }
 
 func (m manifest) urlPath(plural string, namespaced bool) string {

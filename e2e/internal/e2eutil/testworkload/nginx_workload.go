@@ -1,6 +1,7 @@
 package testworkload
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -79,7 +80,7 @@ func NewNginx(kc kubernetes.Interface, namespace string, options ...NginxOpts) (
 		return nil, fmt.Errorf("error creating service %s: %v", n.Name, err)
 	}
 	if err = wait.PollImmediate(PollIntervalForNginx, PollTimeoutForNginx, func() (bool, error) {
-		d, err := kc.ExtensionsV1beta1().Deployments(n.Namespace).Get(n.Name, metav1.GetOptions{})
+		d, err := kc.ExtensionsV1beta1().Deployments(n.Namespace).Get(context.TODO(), n.Name, metav1.GetOptions{})
 		if err != nil {
 			glog.Errorf("Error getting deployment %s: %v", n.Name, err)
 			return false, nil
@@ -89,7 +90,7 @@ func NewNginx(kc kubernetes.Interface, namespace string, options ...NginxOpts) (
 		}
 
 		//wait for all pods to enter running phase
-		pl, err := kc.CoreV1().Pods(n.Namespace).List(metav1.ListOptions{
+		pl, err := kc.CoreV1().Pods(n.Namespace).List(context.TODO(), metav1.ListOptions{
 			LabelSelector: metav1.FormatLabelSelector(n.podSelector),
 		})
 		if err != nil {
@@ -153,13 +154,13 @@ func (n *Nginx) IsUnReachable() error {
 func (n *Nginx) Delete() error {
 	delPropPolicy := metav1.DeletePropagationForeground
 	if err := wait.PollImmediate(PollIntervalForNginx, PollTimeoutForNginx, func() (bool, error) {
-		if err := n.client.ExtensionsV1beta1().Deployments(n.Namespace).Delete(n.Name, &metav1.DeleteOptions{
+		if err := n.client.ExtensionsV1beta1().Deployments(n.Namespace).Delete(context.TODO(), n.Name, metav1.DeleteOptions{
 			PropagationPolicy: &delPropPolicy,
 		}); err != nil && !apierrors.IsNotFound(err) {
 			return false, nil
 		}
 
-		if err := n.client.CoreV1().Services(n.Namespace).Delete(n.Name, &metav1.DeleteOptions{
+		if err := n.client.CoreV1().Services(n.Namespace).Delete(context.TODO(), n.Name, metav1.DeleteOptions{
 			PropagationPolicy: &delPropPolicy,
 		}); err != nil && !apierrors.IsNotFound(err) {
 			return false, nil
@@ -206,7 +207,7 @@ func (n *Nginx) newNginxDeployment() error {
 			},
 		},
 	}
-	if _, err := n.client.ExtensionsV1beta1().Deployments(n.Namespace).Create(d); err != nil {
+	if _, err := n.client.ExtensionsV1beta1().Deployments(n.Namespace).Create(context.TODO(), d, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -234,7 +235,7 @@ func (n *Nginx) newNginxService() error {
 			},
 		},
 	}
-	if _, err := n.client.CoreV1().Services(n.Namespace).Create(svc); err != nil {
+	if _, err := n.client.CoreV1().Services(n.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -276,13 +277,13 @@ func (n *Nginx) newPingPod(reachable bool) error {
 		},
 	}
 
-	if _, err := n.client.BatchV1().Jobs(n.Namespace).Create(job); err != nil {
+	if _, err := n.client.BatchV1().Jobs(n.Namespace).Create(context.TODO(), job, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
 	// wait for pod state
 	if err := wait.PollImmediate(PollIntervalForNginx, PollTimeoutForNginx, func() (bool, error) {
-		j, err := n.client.BatchV1().Jobs(n.Namespace).Get(job.GetName(), metav1.GetOptions{})
+		j, err := n.client.BatchV1().Jobs(n.Namespace).Get(context.TODO(), job.GetName(), metav1.GetOptions{})
 		if err != nil {
 			glog.Errorf("Error getting job %s: %v", job.GetName(), err)
 			return false, nil
