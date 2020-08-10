@@ -11,6 +11,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
+	"strings"
 
 	"github.com/kubernetes-sigs/bootkube/pkg/tlsutil"
 )
@@ -102,13 +104,12 @@ const (
 	AssetPathCharts                         = "charts"
 )
 
-var (
-	BootstrapSecretsDir = "/etc/kubernetes/bootstrap-secrets" // Overridden for testing.
-)
+var BootstrapSecretsDir = "/etc/kubernetes/bootstrap-secrets" // Overridden for testing.
 
 // AssetConfig holds all configuration needed when generating
 // the default set of assets.
 type Config struct {
+	ClusterName            string
 	EtcdCACert             *x509.Certificate
 	EtcdClientCert         *x509.Certificate
 	EtcdClientKey          *rsa.PrivateKey
@@ -118,14 +119,128 @@ type Config struct {
 	CACert                 *x509.Certificate
 	CAPrivKey              *rsa.PrivateKey
 	AltNames               *tlsutil.AltNames
-	PodCIDR                *net.IPNet
-	ServiceCIDR            *net.IPNet
-	APIServiceIP           net.IP
-	DNSServiceIP           net.IP
+	PodCIDRs               []*net.IPNet
+	ServiceCIDRs           []*net.IPNet
+	APIServiceIPs          []net.IP
+	DNSServiceIPs          []net.IP
 	CloudProvider          string
 	NetworkProvider        string
 	BootstrapSecretsSubdir string
 	Images                 ImageVersions
+
+	// PodCIDR describes the networking subnet to be used for inter-pod networking.
+	//
+	// Deprecated: PodCIDR exists only for compatibility with older external
+	// systems.  Please use PodCIDRs instead, which allows for dual-stack
+	// configurations.
+	PodCIDR *net.IPNet
+
+	// ServiceCIDR describes the networking subnet to be used to expose services.
+	//
+	// Deprecated: ServiceCIDR exists only for compatibility with older external
+	// systems.  Please use ServiceCIDRs instead, which allows for dual-stack
+	// configurations.  If both are specified, only ServiceCIDRs will be used.
+	ServiceCIDR *net.IPNet
+
+	// APIServiceIP describes the in-cluster IP address by which the API Servers may be reached.
+	//
+	// Deprecated: APIServiceIP exists only for compatibility with older
+	// external systems.  Please use APIServiceIPs instead, which allows for
+	// dual-stack configurations.  If both are specified, only APIServiceIPs
+	// will be used.
+	APIServiceIP net.IP
+
+	// DNSServiceIP describes the in-cluster IP address by which the cluster DNS servers may be reached.
+	//
+	// Deprecated:  DNSServiceIP exists only for compatibility with older
+	// external systems.  Please use DNSServiceIPs instead, which allows for
+	// dual-stack configurations.  If both are specified, only DNSServiceIPs
+	// will be used.
+	DNSServiceIP net.IP
+}
+
+// BindAllAddress indicates the address to use when binding all IPs.  If this
+// is an IPv6 or dual-stack system, `::` will be returned.  Otherwise
+// `0.0.0.0`.
+func (c Config) BindAllAddress() string {
+	if containsNonLocalIPv6(c.APIServiceIPs) {
+		return "::"
+	}
+	return "0.0.0.0"
+}
+
+// ServiceCIDRsString returns a "," concatenated string for the ServiceCIDRs
+func (c Config) ServiceCIDRsString() string {
+	return joinStringsFromSliceOrSingle(stringerSlice(c.ServiceCIDRs), c.ServiceCIDR)
+}
+
+// PodCIDRsString returns a "," concatenated string for the PodCIDRs
+func (c Config) PodCIDRsString() string {
+	return joinStringsFromSliceOrSingle(stringerSlice(c.PodCIDRs), c.PodCIDR)
+}
+
+// APIServiceIPsString returns a "," concatenated string for the APIServiceIPs
+func (c Config) APIServiceIPsString() string {
+	return joinStringsFromSliceOrSingle(stringerSlice(c.APIServiceIPs), c.APIServiceIP)
+}
+
+// DNSServiceIPsString returns a "," concatenated string for the DNSServiceIPs
+func (c Config) DNSServiceIPsString() string {
+	return joinStringsFromSliceOrSingle(stringerSlice(c.DNSServiceIPs), c.DNSServiceIP)
+}
+
+func stringerSlice(in interface{}) []string {
+	var ok bool
+
+	type Stringer interface {
+		String() string
+	}
+	var stringer Stringer
+
+	if in == nil {
+		return nil
+	}
+
+	r := reflect.ValueOf(in)
+	if r.Len() == 0 {
+		return nil
+	}
+
+	rval := make([]string, r.Len())
+	for i := 0; i < r.Len(); i++ {
+		stringer, ok = r.Index(i).Interface().(fmt.Stringer)
+		if !ok {
+			rval[i] = ""
+			continue
+		}
+		rval[i] = stringer.String()
+	}
+	return rval
+}
+
+func joinStringsFromSliceOrSingle(inSlice []string, inSingle fmt.Stringer) string {
+	if len(inSlice) > 0 {
+		return strings.Join(inSlice, ",")
+	}
+
+	if inSingle == nil {
+		return ""
+	}
+
+	return inSingle.String()
+}
+
+func containsNonLocalIPv6(in []net.IP) bool {
+	for _, ip := range in {
+		if ip == nil || ip.IsLoopback() || ip.IsUnspecified() {
+			continue
+		}
+
+		if ip.To4() == nil && ip.To16() != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // ImageVersions holds all the images (and their versions) that are rendered into the templates.
@@ -151,7 +266,11 @@ func NewDefaultAssets(conf Config) (Assets, error) {
 	as = append(as, newDynamicAssets(conf)...)
 
 	// Add kube-apiserver service IP
-	conf.AltNames.IPs = append(conf.AltNames.IPs, conf.APIServiceIP)
+	if len(conf.APIServiceIPs) > 0 {
+		conf.AltNames.IPs = append(conf.AltNames.IPs, conf.APIServiceIPs...)
+	} else {
+		conf.AltNames.IPs = append(conf.AltNames.IPs, conf.APIServiceIP)
+	}
 
 	// Create a CA if none was provided.
 	if conf.CACert == nil {

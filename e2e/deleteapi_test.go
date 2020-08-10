@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -9,7 +10,7 @@ import (
 )
 
 func TestDeleteAPI(t *testing.T) {
-	apiPods, err := client.CoreV1().Pods("kube-system").List(metav1.ListOptions{LabelSelector: "k8s-app=kube-apiserver"})
+	apiPods, err := client.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{LabelSelector: "k8s-app=kube-apiserver"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -17,7 +18,7 @@ func TestDeleteAPI(t *testing.T) {
 	// delete any api-server pods
 	deletedPods := make(map[string]struct{})
 	for _, pod := range apiPods.Items {
-		if err := client.CoreV1().Pods("kube-system").Delete(pod.ObjectMeta.Name, &metav1.DeleteOptions{}); err != nil {
+		if err := client.CoreV1().Pods("kube-system").Delete(context.TODO(), pod.ObjectMeta.Name, metav1.DeleteOptions{}); err != nil {
 			t.Fatalf("error deleting api-server pod: %v", err)
 		}
 		deletedPods[pod.ObjectMeta.Name] = struct{}{}
@@ -25,7 +26,7 @@ func TestDeleteAPI(t *testing.T) {
 
 	// wait for pods to be completely deleted.
 	if err := retry(100, 1*time.Second, func() error {
-		remainingPods, err := client.CoreV1().Pods("kube-system").List(metav1.ListOptions{LabelSelector: "k8s-app=kube-apiserver"})
+		remainingPods, err := client.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{LabelSelector: "k8s-app=kube-apiserver"})
 		if err != nil {
 			return fmt.Errorf("error checking for remaining apiserver pods: %v", err)
 		}

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -54,12 +55,12 @@ func apiTest(c clientcmd.ClientConfig) error {
 	}
 	// API Server is responding
 	healthStatus := 0
-	client.Discovery().RESTClient().Get().AbsPath("/healthz").Do().StatusCode(&healthStatus)
+	client.Discovery().RESTClient().Get().AbsPath("/healthz").Do(context.TODO()).StatusCode(&healthStatus)
 	if healthStatus != http.StatusOK {
 		return fmt.Errorf("API Server http status: %d", healthStatus)
 	}
 	// System namespace has been created
-	_, err = client.CoreV1().Namespaces().Get("kube-system", metav1.GetOptions{})
+	_, err = client.CoreV1().Namespaces().Get(context.TODO(),"kube-system", metav1.GetOptions{})
 
 	return err
 }

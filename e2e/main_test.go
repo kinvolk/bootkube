@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -76,11 +77,11 @@ func TestMain(m *testing.M) {
 }
 
 func createNamespace(c kubernetes.Interface, name string) (*v1.Namespace, error) {
-	ns, err := c.CoreV1().Namespaces().Create(&v1.Namespace{
+	ns, err := c.CoreV1().Namespaces().Create(context.TODO(), &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-	})
+	}, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		log.Println("ns already exists")
 	} else if err != nil {
@@ -91,14 +92,14 @@ func createNamespace(c kubernetes.Interface, name string) (*v1.Namespace, error)
 }
 
 func deleteNamespace(c kubernetes.Interface, name string) error {
-	return c.CoreV1().Namespaces().Delete(name, nil)
+	return c.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
 // Ready blocks until the cluster is considered available. The current
 // implementation checks that 1 schedulable node is ready.
 func ready(c kubernetes.Interface) error {
 	return retry(50, 10*time.Second, func() error {
-		list, err := c.CoreV1().Nodes().List(metav1.ListOptions{})
+		list, err := c.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return fmt.Errorf("error listing nodes: %v", err)
 		}

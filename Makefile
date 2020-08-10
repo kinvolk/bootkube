@@ -34,7 +34,6 @@ else
 	@echo -e "\e[91mSkipping terraform lint. terraform binary not available.\e[0m"
 endif
 	@go vet $(shell go list ./... | grep -v '/vendor/')
-	@./scripts/verify-gopkg.sh
 	@go test -v $(shell go list ./... | grep -v '/vendor/\|/e2e')
 
 gofmt:

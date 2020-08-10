@@ -10,12 +10,12 @@ import (
 	"path"
 	"strings"
 
-	"github.com/kubernetes-sigs/bootkube/pkg/asset"
-
-	"github.com/coreos/etcd/clientv3"
+	"go.etcd.io/etcd/clientv3"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+
+	"github.com/kubernetes-sigs/bootkube/cmd/render/plugin/default/asset"
 )
 
 // etcdBackend is a backend that extracts a controlPlane from an etcd instance.

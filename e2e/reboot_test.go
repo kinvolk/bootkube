@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sort"
@@ -17,7 +18,7 @@ import (
 // Reboot all nodes in cluster all at once. Wait for nodes to return. Run nginx
 // workload.
 func TestReboot(t *testing.T) {
-	nodeList, err := client.CoreV1().Nodes().List(metav1.ListOptions{})
+	nodeList, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +54,7 @@ func nodesReady(c kubernetes.Interface, expectedNodes *v1.NodeList, t *testing.T
 	}
 
 	return retry(80, 5*time.Second, func() error {
-		list, err := c.CoreV1().Nodes().List(metav1.ListOptions{})
+		list, err := c.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return err
 		}
@@ -89,7 +90,7 @@ const checkpointAnnotation = "checkpointer.alpha.coreos.com/checkpoint-of"
 // in kube-system.
 func controlPlaneReady(c kubernetes.Interface, attempts int, backoff time.Duration) error {
 	return retry(attempts, backoff, func() error {
-		pods, err := c.CoreV1().Pods("kube-system").List(metav1.ListOptions{})
+		pods, err := c.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return fmt.Errorf("get pods in kube-system: %v", err)
 		}

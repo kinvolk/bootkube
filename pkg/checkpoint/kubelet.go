@@ -1,6 +1,7 @@
 package checkpoint
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -58,9 +59,9 @@ func newKubeletClient(config *rest.Config) (*kubeletClient, error) {
 func (k *kubeletClient) localParentPods() map[string]*corev1.Pod {
 	podList := new(corev1.PodList)
 	timeout := 15 * time.Second
-	if err := k.secureClient.Get().AbsPath("/pods/").Timeout(timeout).Do().Into(podList); err != nil {
+	if err := k.secureClient.Get().AbsPath("/pods/").Timeout(timeout).Do(context.TODO()).Into(podList); err != nil {
 		glog.Errorf("failed to secure list local parent pods, fallback to insecure: %v", err)
-		if err := k.insecureClient.Get().AbsPath("/pods/").Timeout(timeout).Do().Into(podList); err != nil {
+		if err := k.insecureClient.Get().AbsPath("/pods/").Timeout(timeout).Do(context.TODO()).Into(podList); err != nil {
 			// Assume there are no local parent pods.
 			glog.Errorf("failed to insecure list local parent pods, assuming none are running: %v", err)
 		}

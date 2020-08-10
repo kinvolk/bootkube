@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kubernetes-sigs/bootkube/pkg/asset"
+	"github.com/kubernetes-sigs/bootkube/cmd/render/plugin/default/asset"
 )
 
 var (

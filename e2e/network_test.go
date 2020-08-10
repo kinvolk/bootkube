@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -29,7 +30,7 @@ const (
 func TestNetwork(t *testing.T) {
 	// check if calico-node daemonset exists
 	// if absent skip this test
-	if _, err := client.ExtensionsV1beta1().DaemonSets("kube-system").Get("calico-node", metav1.GetOptions{}); err != nil {
+	if _, err := client.ExtensionsV1beta1().DaemonSets("kube-system").Get(context.TODO(), "calico-node", metav1.GetOptions{}); err != nil {
 		if apierrors.IsNotFound(err) {
 			t.Skip("calico-node daemonset is not installed")
 		}
@@ -80,7 +81,7 @@ func HelperDefaultDeny(t *testing.T, nginx *testworkload.Nginx) {
 		strings.ToLower(namespace),
 		strings.ToLower("NetworkPolicies"))
 
-	result := httpRestClient.Post().RequestURI(uri).Body(np).Do()
+	result := httpRestClient.Post().RequestURI(uri).Body(np).Do(context.TODO())
 	if result.Error() != nil {
 		t.Fatal(result.Error())
 	}
@@ -92,7 +93,7 @@ func HelperDefaultDeny(t *testing.T, nginx *testworkload.Nginx) {
 			strings.ToLower("NetworkPolicies"),
 			strings.ToLower(np.ObjectMeta.Name))
 
-		result = httpRestClient.Delete().RequestURI(uri).Do()
+		result = httpRestClient.Delete().RequestURI(uri).Do(context.TODO())
 		if result.Error() != nil {
 			t.Fatal(result.Error())
 		}
@@ -128,7 +129,7 @@ func HelperPolicy(t *testing.T, nginx *testworkload.Nginx) {
 		strings.ToLower(namespace),
 		strings.ToLower("NetworkPolicies"))
 
-	result := httpRestClient.Post().RequestURI(uri).Body(np).Do()
+	result := httpRestClient.Post().RequestURI(uri).Body(np).Do(context.TODO())
 	if result.Error() != nil {
 		t.Fatal(result.Error())
 	}
@@ -140,7 +141,7 @@ func HelperPolicy(t *testing.T, nginx *testworkload.Nginx) {
 			strings.ToLower("NetworkPolicies"),
 			strings.ToLower(np.ObjectMeta.Name))
 
-		result = httpRestClient.Delete().RequestURI(uri).Do()
+		result = httpRestClient.Delete().RequestURI(uri).Do(context.TODO())
 		if result.Error() != nil {
 			t.Fatal(result.Error())
 		}

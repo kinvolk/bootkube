@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"time"
 
@@ -103,7 +104,7 @@ type Cluster struct {
 func GetCluster() (*Cluster, error) {
 	var c Cluster
 
-	nodelist, err := client.CoreV1().Nodes().List(metav1.ListOptions{})
+	nodelist, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
