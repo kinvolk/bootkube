@@ -87,6 +87,7 @@ func installChart(kubeconfigPath, namespace, chartName, chartPath string) error 
 	}
 	install.ReleaseName = chartName
 	install.Namespace = namespace
+	install.CreateNamespace = true
 	release, err := install.Run(chart, values)
 	if err != nil {
 		return err
