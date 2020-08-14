@@ -32,18 +32,16 @@ func InstallCharts(kubeconfigPath string, config clientcmd.ClientConfig, chartsD
 		return nil
 	}
 	// get all the charts
-	namespaceChartsMap, err := getCharts(chartsDir)
+	charts, err := getCharts(chartsDir)
 	if err != nil {
 		return fmt.Errorf("getting charts from charts directory %q: %v", chartsDir, err)
 	}
 	// iterate over all the namespaces found in the charts directory
-	for namespace, charts := range namespaceChartsMap {
-		for _, chartName := range charts {
-			chartPath := filepath.Join(chartsDir, namespace, chartName)
-			// install charts found in each namespace directory
-			if err := installChart(kubeconfigPath, namespace, chartName, chartPath); err != nil {
-				return err
-			}
+	for _, chart := range charts {
+		chartPath := filepath.Join(chartsDir, chart.namespace, chart.name)
+		// install charts found in each namespace directory
+		if err := installChart(kubeconfigPath, chart.namespace, chart.name, chartPath); err != nil {
+			return err
 		}
 	}
 
