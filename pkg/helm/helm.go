@@ -19,6 +19,11 @@ const (
 	defaultHelmStorageDriver = "secrets"
 )
 
+type installError struct {
+	err   error
+	chart chartInfo
+}
+
 // InstallCharts installs all the helm charts in the given charts directory.
 func InstallCharts(kubeconfigPath string, config clientcmd.ClientConfig, chartsDir string) error {
 	// check if charts directory exists
@@ -36,16 +41,33 @@ func InstallCharts(kubeconfigPath string, config clientcmd.ClientConfig, chartsD
 	if err != nil {
 		return fmt.Errorf("getting charts from charts directory %q: %v", chartsDir, err)
 	}
+
+	errors := make(chan installError, len(charts))
+
 	// iterate over all the namespaces found in the charts directory
 	for _, chart := range charts {
-		chartPath := filepath.Join(chartsDir, chart.namespace, chart.name)
-		// install charts found in each namespace directory
-		if err := installChart(kubeconfigPath, chart.namespace, chart.name, chartPath); err != nil {
-			return err
+		go func(chart chartInfo) {
+			chartPath := filepath.Join(chartsDir, chart.namespace, chart.name)
+			// install charts found in each namespace directory
+			errors <- installError{
+				err:   installChart(kubeconfigPath, chart.namespace, chart.name, chartPath),
+				chart: chart,
+			}
+		}(chart)
+	}
+
+	err = nil
+
+	for range charts {
+		i := <-errors
+		if i.err != nil {
+			util.UserOutput(fmt.Sprintf("Installing chart %q in namespace %q failed: %v", i.chart.name, i.chart.namespace, i.err))
+
+			err = fmt.Errorf("installing charts failed")
 		}
 	}
 
-	return nil
+	return err
 }
 
 // installChart is a helper function to install a single helm chart
