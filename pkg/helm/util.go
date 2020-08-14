@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 
 	"sigs.k8s.io/yaml"
+
+	"github.com/kubernetes-sigs/bootkube/pkg/util"
 )
 
 // getCharts returns the map structure of charts found in sub directories
@@ -64,4 +66,14 @@ func loadValuesFile(path string) (map[string]interface{}, error) {
 	}
 
 	return values, nil
+}
+
+// log is a wrapper over UserOutput function to be passed to Helm client,
+// as Helm logs comes without newline at the end, which makes the output
+// very difficult to read. This function simply appends the newline at the end
+// of a given format.
+func log(namespace, chartName string) func(format string, a ...interface{}) {
+	return func(format string, a ...interface{}) {
+		util.UserOutput(fmt.Sprintf("%s/%s: %s\n", namespace, chartName, format), a)
+	}
 }

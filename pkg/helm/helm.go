@@ -54,8 +54,8 @@ func InstallCharts(kubeconfigPath string, config clientcmd.ClientConfig, chartsD
 func installChart(kubeconfigPath, namespace, chartName, chartPath string) error {
 	client := kube.GetConfig(kubeconfigPath, "", namespace)
 	actionConfig := &action.Configuration{}
-	if err := actionConfig.Init(client, namespace, defaultHelmStorageDriver, util.UserOutput); err != nil {
-		util.UserOutput(fmt.Sprintf("error initalizing helm --- %v\n", err))
+	if err := actionConfig.Init(client, namespace, defaultHelmStorageDriver, log(namespace, chartName)); err != nil {
+		util.UserOutput(fmt.Sprintf("Error initalizing helm: %v\n", err))
 		return err
 	}
 	util.UserOutput(fmt.Sprintf("Loading chart %q\n", chartName))
