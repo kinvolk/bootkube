@@ -33,7 +33,7 @@ func InstallCharts(kubeconfigPath string, config clientcmd.ClientConfig, chartsD
 	// get all the charts
 	namespaceChartsMap, err := getCharts(chartsDir)
 	if err != nil {
-		return fmt.Errorf("error getting charts from charts directory `%v`: %v", chartsDir, err)
+		return fmt.Errorf("getting charts from charts directory %q: %v", chartsDir, err)
 	}
 	// iterate over all the namespaces found in the charts directory
 	for namespace, charts := range namespaceChartsMap {
@@ -57,7 +57,7 @@ func installChart(kubeconfigPath, namespace, chartName, chartPath string) error 
 		util.UserOutput(fmt.Sprintf("error initalizing helm --- %v\n", err))
 		return err
 	}
-	util.UserOutput(fmt.Sprintf("loading chart --- %s\n", chartName))
+	util.UserOutput(fmt.Sprintf("Loading chart %q\n", chartName))
 	// load chart from the directory
 	chart, err := loader.Load(chartPath)
 	if err != nil {
@@ -92,7 +92,7 @@ func installChart(kubeconfigPath, namespace, chartName, chartPath string) error 
 	if err != nil {
 		return err
 	}
-	util.UserOutput(fmt.Sprintf("Release-created :: %s\n", release.Name))
+	util.UserOutput(fmt.Sprintf("Release %q created\n", release.Name))
 
 	return nil
 }
