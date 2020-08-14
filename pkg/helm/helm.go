@@ -53,9 +53,7 @@ func InstallCharts(kubeconfigPath string, config clientcmd.ClientConfig, chartsD
 func installChart(kubeconfigPath, namespace, chartName, chartPath string) error {
 	client := kube.GetConfig(kubeconfigPath, "", namespace)
 	actionConfig := &action.Configuration{}
-	// namespace where helm stores the metadata about the releases
-	helmStorageNamespace := getHelmStorageNamespace(namespace)
-	if err := actionConfig.Init(client, helmStorageNamespace, defaultHelmStorageDriver, util.UserOutput); err != nil {
+	if err := actionConfig.Init(client, namespace, defaultHelmStorageDriver, util.UserOutput); err != nil {
 		util.UserOutput(fmt.Sprintf("error initalizing helm --- %v\n", err))
 		return err
 	}
@@ -110,16 +108,6 @@ func isExists(path string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-// getHelmStorageNamespace gets the helm storage namespace from env variable HELM_STORAGE_NAMESPACE
-func getHelmStorageNamespace(defaultStorageNamespace string) string {
-	value, found := os.LookupEnv("HELM_STORAGE_NAMESPACE")
-	if found || len(value) > 0 {
-		return value
-	}
-
-	return defaultStorageNamespace
 }
 
 // validates the chart and its dependencies
