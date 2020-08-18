@@ -5,13 +5,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kubernetes-sigs/bootkube/pkg/util"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/downloader"
 	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/kubernetes-sigs/bootkube/pkg/util"
 )
 
 const (
@@ -33,7 +34,7 @@ func InstallCharts(kubeconfigPath string, config clientcmd.ClientConfig, chartsD
 	// get all the charts
 	namespaceChartsMap, err := getCharts(chartsDir)
 	if err != nil {
-		return fmt.Errorf("error getting charts from charts directory `%v`: %v", chartsDir, err)
+		return fmt.Errorf("getting charts from charts directory %q: %v", chartsDir, err)
 	}
 	// iterate over all the namespaces found in the charts directory
 	for namespace, charts := range namespaceChartsMap {
@@ -53,11 +54,11 @@ func InstallCharts(kubeconfigPath string, config clientcmd.ClientConfig, chartsD
 func installChart(kubeconfigPath, namespace, chartName, chartPath string) error {
 	client := kube.GetConfig(kubeconfigPath, "", namespace)
 	actionConfig := &action.Configuration{}
-	if err := actionConfig.Init(client, namespace, defaultHelmStorageDriver, util.UserOutput); err != nil {
-		util.UserOutput(fmt.Sprintf("error initalizing helm --- %v\n", err))
+	if err := actionConfig.Init(client, namespace, defaultHelmStorageDriver, log(namespace, chartName)); err != nil {
+		util.UserOutput(fmt.Sprintf("Error initalizing helm: %v\n", err))
 		return err
 	}
-	util.UserOutput(fmt.Sprintf("loading chart --- %s\n", chartName))
+	util.UserOutput(fmt.Sprintf("Loading chart %q\n", chartName))
 	// load chart from the directory
 	chart, err := loader.Load(chartPath)
 	if err != nil {
@@ -87,11 +88,12 @@ func installChart(kubeconfigPath, namespace, chartName, chartPath string) error 
 	}
 	install.ReleaseName = chartName
 	install.Namespace = namespace
+	install.CreateNamespace = true
 	release, err := install.Run(chart, values)
 	if err != nil {
 		return err
 	}
-	util.UserOutput(fmt.Sprintf("Release-created :: %s\n", release.Name))
+	util.UserOutput(fmt.Sprintf("Release %q created\n", release.Name))
 
 	return nil
 }

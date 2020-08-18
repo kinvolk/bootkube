@@ -60,7 +60,7 @@ func apiTest(c clientcmd.ClientConfig) error {
 		return fmt.Errorf("API Server http status: %d", healthStatus)
 	}
 	// System namespace has been created
-	_, err = client.CoreV1().Namespaces().Get(context.TODO(),"kube-system", metav1.GetOptions{})
+	_, err = client.CoreV1().Namespaces().Get(context.TODO(), "kube-system", metav1.GetOptions{})
 
 	return err
 }
