@@ -64,22 +64,19 @@ func TestGetCharts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(namespaceDirs) != len(namespaceChartsMap) {
+	if len(chartDirs) != len(namespaceChartsMap) {
 		t.Fatal("number of directories did not match")
 	}
 
-	for namespace, charts := range namespaceChartsMap {
-		path := filepath.Join(chartsDir, namespace)
+	for _, chart := range namespaceChartsMap {
+		path := filepath.Join(chartsDir, chart.namespace)
 		if !isPresent(path, namespaceDirs) {
-			t.Fatalf("did not find namespace directory named `%s`", namespace)
+			t.Fatalf("did not find namespace directory named %q", chart.namespace)
 		}
 
-		for _, chart := range charts {
-			path = filepath.Join(chartsDir, namespace, chart)
-			if !isPresent(path, chartDirs) {
-				t.Fatalf("chart `%s` not found", chart)
-			}
-
+		path = filepath.Join(chartsDir, chart.namespace, chart.name)
+		if !isPresent(path, chartDirs) {
+			t.Fatalf("chart %q not found", chart.name)
 		}
 	}
 }

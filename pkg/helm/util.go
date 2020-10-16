@@ -10,26 +10,34 @@ import (
 	"github.com/kubernetes-sigs/bootkube/pkg/util"
 )
 
+type chartInfo struct {
+	name      string
+	namespace string
+}
+
 // getCharts returns the map structure of charts found in sub directories
 // Sub directories of chartsDir corresponds to the namespaces the charts are to be installed.
 // Each namespace sub directory contains the respectie charts.
 // This method returns the map structure of namespace directory name as key and path of the charts as values.
-func getCharts(chartsDir string) (map[string][]string, error) {
-	var charts = map[string][]string{}
-	dirs, err := getDirs(chartsDir)
+func getCharts(chartsDir string) ([]chartInfo, error) {
+	charts := []chartInfo{}
+	namespaces, err := getDirs(chartsDir)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, dir := range dirs {
-		chartsInDir := []string{}
-		path := filepath.Join(chartsDir, dir)
-		ch, err := getDirs(path)
+	for _, namespace := range namespaces {
+		ch, err := getDirs(filepath.Join(chartsDir, namespace))
 		if err != nil {
 			return nil, err
 		}
-		chartsInDir = append(chartsInDir, ch...)
-		charts[dir] = chartsInDir
+
+		for _, c := range ch {
+			charts = append(charts, chartInfo{
+				namespace: namespace,
+				name:      c,
+			})
+		}
 	}
 
 	return charts, nil
