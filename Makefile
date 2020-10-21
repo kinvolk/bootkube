@@ -5,8 +5,38 @@ export PATH:=$(PATH):$(PWD)
 LOCAL_OS:=$(shell uname | tr A-Z a-z)
 GOFILES:=$(shell find . -name '*.go' ! -path './vendor/*')
 VENDOR_GOFILES ?= $(shell find vendor -name '*.go')
-LDFLAGS=-X github.com/kubernetes-sigs/bootkube/pkg/version.Version=$(shell $(CURDIR)/build/git-version.sh)
+VERSION=$(shell $(CURDIR)/build/git-version.sh)
+LDFLAGS=-X github.com/kubernetes-sigs/bootkube/pkg/version.Version=$(VERSION)
 TERRAFORM:=$(shell command -v terraform 2> /dev/null)
+
+CMD=bootkube
+GOOS=$(LOCAL_OS)
+IMAGE_REPOSITORY=quay.io/kinvolk
+
+build:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -mod vendor -ldflags "$(LDFLAGS)" ./cmd/$(CMD)
+
+build-docker:
+	docker build \
+		--build-arg GOOS=$(GOOS) \
+		--build-arg GOARCH=$(GOARCH) \
+		--build-arg CMD=$(CMD) \
+		--build-arg VERSION=$(VERSION) \
+		-t $(IMAGE_REPOSITORY)/$(CMD):$(VERSION)-$(GOARCH) \
+		-f ./cmd/$(CMD)/Dockerfile \
+		.
+
+build-docker-all:
+	make build-docker GOARCH=amd64 CMD=bootkube
+	make build-docker GOARCH=arm64 CMD=bootkube
+	make build-docker GOARCH=amd64 CMD=checkpoint
+	make build-docker GOARCH=arm64 CMD=checkpoint
+
+build-docker-all-push: build-docker-all
+	docker push $(IMAGE_REPOSITORY)/bootkube:$(VERSION)-amd64
+	docker push $(IMAGE_REPOSITORY)/bootkube:$(VERSION)-arm64
+	docker push $(IMAGE_REPOSITORY)/checkpoint:$(VERSION)-amd64
+	docker push $(IMAGE_REPOSITORY)/checkpoint:$(VERSION)-arm64
 
 all: \
 	_output/bin/$(LOCAL_OS)/bootkube \
@@ -84,4 +114,4 @@ vendor:
 clean:
 	rm -rf _output
 
-.PHONY: all check clean gofmt install release vendor
+.PHONY: all check clean gofmt install release vendor build build-docker build-docker-all build-docker-all-push
