@@ -47,7 +47,7 @@ _output/bin/%: GOARCH=$(word 2, $(subst /, ,$*))
 _output/bin/%: GOARCH:=amd64  # default to amd64 to support release scripts
 _output/bin/%: $(GOFILES) $(VENDOR_GOFILES)
 	mkdir -p $(dir $@)
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $@ github.com/kubernetes-sigs/bootkube/cmd/$(notdir $@)
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -mod vendor $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $@ github.com/kubernetes-sigs/bootkube/cmd/$(notdir $@)
 
 _output/release/bootkube.tar.gz: _output/bin/linux/bootkube _output/bin/darwin/bootkube _output/bin/linux/checkpoint
 	mkdir -p $(dir $@)
