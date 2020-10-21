@@ -76,8 +76,8 @@ conformance-%: all
 #TODO: curl/sed "vendored" libs is gross - come up with something better
 vendor:
 	@go mod vendor
-	@curl https://raw.githubusercontent.com/kubernetes/kubernetes/v1.16.2/pkg/kubelet/util/util.go | sed 's/^package util$$/package internal/' > pkg/checkpoint/internal/util.go
-	@curl https://raw.githubusercontent.com/kubernetes/kubernetes/v1.16.2/pkg/kubelet/util/util_unix.go | sed 's/^package util$$/package internal/' > pkg/checkpoint/internal/util_unix.go
+	@curl https://raw.githubusercontent.com/kubernetes/kubernetes/v1.18.2/pkg/kubelet/util/util.go | sed 's/^package util$$/package internal/' > pkg/checkpoint/internal/util.go
+	@curl https://raw.githubusercontent.com/kubernetes/kubernetes/v1.18.2/pkg/kubelet/util/util_unix.go | sed 's/^package util$$/package internal/' > pkg/checkpoint/internal/util_unix.go
 
 clean:
 	rm -rf _output
