@@ -82,6 +82,6 @@ func loadValuesFile(path string) (map[string]interface{}, error) {
 // of a given format.
 func log(namespace, chartName string) func(format string, a ...interface{}) {
 	return func(format string, a ...interface{}) {
-		util.UserOutput(fmt.Sprintf("%s/%s: %s\n", namespace, chartName, format), a)
+		util.UserOutput(fmt.Sprintf("%s/%s: %s\n", namespace, chartName, format), a...)
 	}
 }

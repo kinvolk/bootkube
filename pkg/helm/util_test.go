@@ -1,6 +1,8 @@
 package helm
 
 import (
+	"bytes"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -108,5 +110,46 @@ func TestLoadValuesFile(t *testing.T) {
 	}
 	if data["key"] != "value" {
 		t.Fatal("data not loaded properly")
+	}
+}
+
+// captureStdout is helper function for testing functions, which do not offer specifying where they should write
+// output and write only to os.Stdout. Wrapping such functions using this allows to capture their output as string.
+func captureStdout(printFunction func()) string {
+	// Keep backup of the real stdout.
+	old := os.Stdout
+
+	// Get new pipe to temporarily override os.Stdout so we can capture the output.
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	printFunction()
+
+	outC := make(chan string)
+
+	// Copy the output in a separate goroutine so printing can't block indefinitely.
+	go func() {
+		var buf bytes.Buffer
+		io.Copy(&buf, r)
+		outC <- buf.String()
+	}()
+
+	// Back to normal state.
+	w.Close()
+
+	// Restoring the real stdout.
+	os.Stdout = old
+
+	return <-outC
+}
+
+func TestLogExpandsGivenArguments(t *testing.T) {
+	output := captureStdout(func() {
+		log("foo", "bar")("%d %q", 6, "6")
+	})
+
+	expected := "foo/bar: 6 \"6\"\n"
+	if output != expected {
+		t.Fatalf("unexpected input. Expected %q, got %q", expected, output)
 	}
 }
