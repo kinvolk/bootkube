@@ -32,11 +32,29 @@ build-docker-all:
 	make build-docker GOARCH=amd64 CMD=checkpoint
 	make build-docker GOARCH=arm64 CMD=checkpoint
 
-build-docker-all-push: build-docker-all
-	docker push $(IMAGE_REPOSITORY)/bootkube:$(VERSION)-amd64
-	docker push $(IMAGE_REPOSITORY)/bootkube:$(VERSION)-arm64
-	docker push $(IMAGE_REPOSITORY)/checkpoint:$(VERSION)-amd64
-	docker push $(IMAGE_REPOSITORY)/checkpoint:$(VERSION)-arm64
+docker-push:
+	docker push $(IMAGE_REPOSITORY)/$(CMD):$(VERSION)-$(GOARCH)
+
+docker-push-multiarch:
+	make docker-push GOARCH=amd64 CMD=$(CMD)
+	make docker-push GOARCH=arm64 CMD=$(CMD)
+
+	docker manifest create $(IMAGE_REPOSITORY)/$(CMD):$(VERSION) \
+		--amend $(IMAGE_REPOSITORY)/$(CMD):$(VERSION)-amd64 \
+		--amend $(IMAGE_REPOSITORY)/$(CMD):$(VERSION)-arm64
+
+	docker manifest annotate $(IMAGE_REPOSITORY)/$(CMD):$(VERSION) \
+		$(IMAGE_REPOSITORY)/$(CMD):$(VERSION)-amd64 --arch amd64
+
+	docker manifest annotate $(IMAGE_REPOSITORY)/$(CMD):$(VERSION) \
+		$(IMAGE_REPOSITORY)/$(CMD):$(VERSION)-arm64 --arch arm64
+
+	docker manifest push --purge $(IMAGE_REPOSITORY)/$(CMD):$(VERSION)
+
+build-docker-all-push-multiarch: build-docker-all
+build-docker-all-push-multiarch:
+	make docker-push-multiarch CMD=bootkube
+	make docker-push-multiarch CMD=checkpoint
 
 all: \
 	_output/bin/$(LOCAL_OS)/bootkube \
