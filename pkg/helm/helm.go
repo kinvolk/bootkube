@@ -10,7 +10,6 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/downloader"
 	"helm.sh/helm/v3/pkg/kube"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kubernetes-sigs/bootkube/pkg/util"
 )
@@ -25,7 +24,7 @@ type installError struct {
 }
 
 // InstallCharts installs all the helm charts in the given charts directory.
-func InstallCharts(kubeconfigPath string, config clientcmd.ClientConfig, chartsDir string) error {
+func InstallCharts(kubeconfigPath string, chartsDir string) error {
 	// check if charts directory exists
 	present, err := isExists(chartsDir)
 	if err != nil {
