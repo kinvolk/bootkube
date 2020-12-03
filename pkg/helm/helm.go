@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -24,7 +25,7 @@ type installError struct {
 }
 
 // InstallCharts installs all the helm charts in the given charts directory.
-func InstallCharts(kubeconfigPath string, chartsDir string) error {
+func InstallCharts(kubeconfigPath string, chartsDir string, installTimeout time.Duration) error {
 	// check if charts directory exists
 	present, err := isExists(chartsDir)
 	if err != nil {
@@ -49,7 +50,7 @@ func InstallCharts(kubeconfigPath string, chartsDir string) error {
 			chartPath := filepath.Join(chartsDir, chart.namespace, chart.name)
 			// install charts found in each namespace directory
 			errors <- installError{
-				err:   installChart(kubeconfigPath, chart.namespace, chart.name, chartPath),
+				err:   installChart(kubeconfigPath, chart.namespace, chart.name, chartPath, installTimeout),
 				chart: chart,
 			}
 		}(chart)
@@ -70,7 +71,7 @@ func InstallCharts(kubeconfigPath string, chartsDir string) error {
 }
 
 // installChart is a helper function to install a single helm chart
-func installChart(kubeconfigPath, namespace, chartName, chartPath string) error {
+func installChart(kubeconfigPath, namespace, chartName, chartPath string, installTimeout time.Duration) error {
 	client := kube.GetConfig(kubeconfigPath, "", namespace)
 	actionConfig := &action.Configuration{}
 	if err := actionConfig.Init(client, namespace, defaultHelmStorageDriver, log(namespace, chartName)); err != nil {
@@ -109,6 +110,7 @@ func installChart(kubeconfigPath, namespace, chartName, chartPath string) error 
 	install.Namespace = namespace
 	install.CreateNamespace = true
 	install.Wait = true
+	install.Timeout = installTimeout
 	release, err := install.Run(chart, values)
 	if err != nil {
 		return err
