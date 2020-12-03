@@ -56,18 +56,16 @@ func InstallCharts(kubeconfigPath string, chartsDir string, installTimeout time.
 		}(chart)
 	}
 
-	err = nil
-
 	for range charts {
 		i := <-errors
 		if i.err != nil {
 			util.UserOutput(fmt.Sprintf("Installing chart %q in namespace %q failed: %v", i.chart.name, i.chart.namespace, i.err))
 
-			err = fmt.Errorf("installing charts failed")
+			return fmt.Errorf("installing charts failed")
 		}
 	}
 
-	return err
+	return nil
 }
 
 // installChart is a helper function to install a single helm chart
