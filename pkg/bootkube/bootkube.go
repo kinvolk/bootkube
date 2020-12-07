@@ -73,7 +73,9 @@ func (b *bootkube) Run() error {
 	}
 
 	kubeconfigPath := filepath.Join(b.assetDir, asset.AssetPathAdminKubeConfig)
-	if err = helm.InstallCharts(kubeconfigPath, kubeConfig, filepath.Join(b.assetDir, asset.AssetPathCharts)); err != nil {
+	chartsPath := filepath.Join(b.assetDir, asset.AssetPathCharts)
+
+	if err = helm.InstallCharts(kubeconfigPath, chartsPath, assetTimeout); err != nil {
 		return err
 	}
 
